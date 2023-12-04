@@ -1,0 +1,17 @@
+[package]
+name = "onuw-agent"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+onuw-game = { path = "../onuw-game" }
+
+async-trait.workspace = true
+fallible-iterator.workspace = true
+futures.workspace = true
+itertools.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
