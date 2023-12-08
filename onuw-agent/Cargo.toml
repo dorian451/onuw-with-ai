@@ -9,6 +9,7 @@ edition = "2021"
 onuw-game = { path = "../onuw-game" }
 
 async-trait.workspace = true
+rand.workspace = true
 fallible-iterator.workspace = true
 futures.workspace = true
 itertools.workspace = true
