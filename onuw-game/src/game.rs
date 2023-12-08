@@ -11,7 +11,7 @@ use self::time::ONUWTime;
 use crate::game::voteaction::ONUWGameVoteAction;
 use crate::playerinterface::message::Message;
 use crate::playerinterface::roletarget::RoleTarget;
-use crate::playerinterface::PlayerInterface;
+use crate::playerinterface::{error, PlayerInterface};
 use crate::role::{roletype::RoleType, ActionPriority, Role};
 use derive_getters::Getters;
 use futures::future::join_all;
@@ -30,7 +30,7 @@ use std::{
 };
 use tokio::sync::RwLock;
 use tracing::debug;
-use tracing::{instrument, warn};
+use tracing::{error, instrument, warn};
 
 pub type GamePlayer = Arc<dyn PlayerInterface>;
 pub type GameRole = Arc<RwLock<Box<dyn Role>>>;
@@ -43,6 +43,9 @@ pub struct ONUWGame {
     centerroles: Vec<GameRole>,
     options: Options,
     nightactions: BTreeMap<ActionPriority, Vec<NightAction>>,
+    votes: Option<HashMap<Arc<dyn PlayerInterface>, Arc<dyn PlayerInterface>>>,
+    dead: Option<HashSet<Arc<dyn PlayerInterface>>>,
+    winners: Option<HashSet<Arc<dyn PlayerInterface>>>,
 }
 
 impl ONUWGame {
@@ -93,6 +96,9 @@ impl ONUWGame {
                 options,
                 nightactions: BTreeMap::new(),
                 players: assigned_roles.clone(),
+                votes: None,
+                dead: None,
+                winners: None,
             };
 
             let mut assigned_roles_iter = stream::iter(assigned_roles);
@@ -138,11 +144,11 @@ impl ONUWGame {
     pub async fn perform_next_night_action<Fut: Future<Output = ()>>(
         &mut self,
         onfake: fn() -> Fut,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), GameError> {
         let (priority, actions) = self
             .nightactions
             .pop_first()
-            .ok_or("no more night actions")?;
+            .ok_or(GameError::NoMoreNightActions)?;
 
         let mut last_role = None;
 
@@ -157,7 +163,7 @@ impl ONUWGame {
                     }
 
                     debug!("performing action of {:?} for player {:?}", role, player);
-                    role.action_at_priority(&priority, self, &player).await?;
+                    role.action_at_priority(&priority, self, &player).await;
                 }
                 NightAction::Fake(role) => {
                     let role = role.read().await;
@@ -273,37 +279,73 @@ impl ONUWGame {
     }
 
     #[instrument(level = "trace")]
-    pub async fn determine_game(&self) {
-        let votes: HashMap<_, _> = join_all(self.players.keys().map(|v| async move {
-            (
-                v.clone(),
-                v.choose_player(&self.all_other_players(v))
-                    .await
-                    .unwrap_or_else(|_| todo!()),
-            )
-        }))
-        .await
-        .into_iter()
-        .collect();
+    pub async fn collect_votes(&mut self) -> Result<(), GameError> {
+        if self.votes.is_some() || self.dead.is_some() || self.winners.is_some() {
+            (Err(GameError::WrongCmdOrder))?
+        }
 
-        debug!("votes:\n{:#?}", votes);
+        let immut_self: &_ = self;
+        let v = Some(
+            join_all(immut_self.players.keys().map(|v| async move {
+                (
+                    v.clone(),
+                    v.choose_player(&immut_self.all_other_players(v))
+                        .await
+                        .unwrap_or_else(|e| {
+                            error!("{:#?}", e);
+                            todo!()
+                        }),
+                )
+            }))
+            .await
+            .into_iter()
+            .collect(),
+        );
 
-        let mut dead: Vec<_> = votes
-            .values()
+        self.votes = v;
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace")]
+    pub async fn calc_dead_and_winners(&mut self) -> Result<(), GameError> {
+        if self.votes.is_none() || self.dead.is_some() || self.winners.is_some() {
+            (Err(GameError::WrongCmdOrder))?
+        }
+
+        self.dead = Some(
+            self.votes
+                .as_ref()
+                .unwrap()
+                .values()
+                .cloned()
+                .counts()
+                .into_iter()
+                .map(|(k, v)| (v, k))
+                .max_set_by(|(a, _), (b, _)| a.cmp(b))
+                .into_iter()
+                .map(|(_, p)| p)
+                .collect(),
+        );
+
+        debug!("dead before actions:\n{:#?}", self.dead.as_ref().unwrap());
+
+        let dead_vec = self
+            .dead
+            .as_ref()
+            .unwrap()
+            .iter()
             .cloned()
-            .counts()
-            .into_iter()
-            .map(|(k, v)| (v, k))
-            .max_set_by(|(a, _), (b, _)| a.cmp(b))
-            .into_iter()
-            .map(|(_, p)| p)
-            .collect();
-
-        debug!("dead before actions:\n{:#?}", dead);
+            .collect::<Vec<_>>();
 
         let actions: Vec<_> = stream::iter(self.players.iter())
             .then(|(p, r)| async {
-                stream::iter(r.read().await.after_vote(self, p, &votes, &dead))
+                stream::iter(r.read().await.after_vote(
+                    self,
+                    p,
+                    self.votes.as_ref().unwrap(),
+                    &dead_vec,
+                ))
             })
             .flatten()
             .collect()
@@ -311,16 +353,39 @@ impl ONUWGame {
 
         for action in actions {
             match action {
-                ONUWGameVoteAction::Kill(p) => dead.push(p),
+                ONUWGameVoteAction::Kill(p) => {
+                    self.dead.as_mut().unwrap().insert(p);
+                }
             }
         }
 
-        debug!("dead:\n{:#?}", dead);
+        debug!("dead:\n{:#?}", self.dead.as_ref().unwrap());
 
-        let dead_with_roles: Vec<_> = dead
-            .into_iter()
-            .map(|d| (d.clone(), self.players.get(&d).unwrap().clone()))
+        let dead_with_roles: Vec<_> = self
+            .dead
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|d| (d.clone(), self.players.get(d).unwrap().clone()))
             .collect();
+
+        self.winners = Some(
+            stream::iter(self.players.iter())
+                .filter_map(|(player, role)| async {
+                    let win = role
+                        .read()
+                        .await
+                        .win_condition(self, player, &dead_with_roles);
+
+                    if win {
+                        Some(player.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+                .await,
+        );
 
         stream::iter(self.players.iter())
             .for_each(|(player, role)| async {
@@ -333,6 +398,8 @@ impl ONUWGame {
                     .await;
             })
             .await;
+
+        Ok(())
     }
 
     #[instrument(level = "trace")]
