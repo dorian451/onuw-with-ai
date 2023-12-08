@@ -7,14 +7,22 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+onuw-game = { path = "../onuw-game", optional = true }
+onuw-agent = { path = "../onuw-agent", optional = true }
+
 axum = { workspace = true, optional = true }
 cfg-if.workspace = true
 console_error_panic_hook.workspace = true
+hashlink.workspace = true
 http.workspace = true
+fallible-iterator.workspace = true
+once_cell.workspace = true
 leptos = { workspace = true, features = ["nightly"] }
+leptos-use = { workspace = true, optional = true }
 leptos_axum = { workspace = true, optional = true }
 leptos_meta = { workspace = true, features = ["nightly"] }
 leptos_router = { workspace = true, features = ["nightly"] }
+serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, optional = true }
 tower = { workspace = true, optional = true }
@@ -28,23 +36,28 @@ wasm-bindgen.workspace = true
 
 [features]
 hydrate = [
-    "leptos/hydrate",
+    "dep:tracing-wasm",
+    "dep:tracing",
+    "onuw-game/light",
     "leptos_meta/hydrate",
     "leptos_router/hydrate",
-    "dep:tracing",
-    "dep:tracing-wasm",
+    "leptos-use",
+    "leptos/hydrate",
 ]
 ssr = [
     "dep:axum",
-    "dep:tokio",
-    "dep:tower",
-    "dep:tower-http",
     "dep:leptos_axum",
-    "leptos/ssr",
+    "dep:onuw-agent",
+    "dep:onuw-game",
+    "dep:tokio",
+    "dep:tower-http",
+    "dep:tower",
+    "dep:tracing-subscriber",
+    "dep:tracing",
     "leptos_meta/ssr",
     "leptos_router/ssr",
-    "dep:tracing",
-    "dep:tracing-subscriber",
+    "leptos-use/ssr",
+    "leptos/ssr",
 ]
 
 [package.metadata.leptos]
@@ -60,11 +73,14 @@ site-pkg-dir = "pkg"
 
 # [Optional] The source CSS file. If it ends with .sass or .scss then it will be compiled by dart-sass into CSS. The CSS is optimized by Lightning CSS before being written to <site-root>/<site-pkg>/app.css
 style-file = "style/main.scss"
+
+tailwind-input-file = "style/tailwind.css"
+
 # Assets source dir. All files found here will be copied and synchronized to site-root.
 # The assets-dir cannot have a sub directory with the same name/path as site-pkg-dir.
 #
 # Optional. Env: LEPTOS_ASSETS_DIR.
-assets-dir = "assets"
+assets-dir = "public"
 
 # [Optional] Command to use when running end2end tests. It will run in the end2end dir.
 #   [Windows] for non-WSL use "npx.cmd playwright test"

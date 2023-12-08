@@ -3,15 +3,18 @@ name = "onuw-game"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+light = []
 
 [dependencies]
 async-trait.workspace = true
+cfg-if.workspace = true
 derive-getters.workspace = true
 dyn-clone.workspace = true
 futures.workspace = true
+hashlink.workspace = true
 itertools.workspace = true
-lazy_static.workspace = true
+once_cell.workspace = true
 rand.workspace = true
 serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
