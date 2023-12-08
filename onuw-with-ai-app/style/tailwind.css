@@ -1,0 +1,36 @@
+@tailwind base; /* Preflight will be injected here */
+
+@tailwind components;
+
+@tailwind utilities;
+
+@layer base {
+  h1 {
+    @apply text-2xl;
+  }
+  h2 {
+    @apply text-xl;
+  }
+  h3 {
+    @apply text-lg;
+  }
+}
+
+@layer components {
+  button {
+    @apply font-bold p-2 rounded text-white;
+  }
+
+  button:disabled {
+    @apply opacity-80 cursor-not-allowed;
+  }
+
+  button:hover:not(:disabled),
+  button:focus:not(:disabled) {
+    @apply bg-gradient-to-t from-black/20 to-black/20 bg-blend-darken;
+  }
+
+  button:active:not(:disabled) {
+    @apply bg-gradient-to-t from-black/30 to-black/30 bg-blend-darken;
+  }
+}
