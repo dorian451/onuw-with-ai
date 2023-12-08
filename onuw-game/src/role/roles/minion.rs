@@ -5,16 +5,11 @@ use crate::{
 };
 use async_trait::async_trait;
 use futures::Future;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use std::pin::Pin;
 use tracing::instrument;
 
-lazy_static! {
-    static ref ACTIONS: ActionFnMap<Minion> =
-        [("3".to_string(), Minion::night_action as ActionFn<Minion>)]
-            .into_iter()
-            .collect();
-}
+static ACTIONS: Lazy<ActionFnMap<Minion>> = Lazy::new(|| [("3".to_string(), Minion::night_action as ActionFn<Minion>)].into_iter().collect());
 
 #[derive(Clone, Debug)]
 pub struct Minion;
@@ -88,3 +83,5 @@ impl Minion {
         })
     }
 }
+
+

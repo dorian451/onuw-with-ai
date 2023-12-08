@@ -6,18 +6,14 @@ use crate::{
 };
 use async_trait::async_trait;
 use futures::Future;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use std::{pin::Pin, vec::Vec};
 use tracing::instrument;
 
-lazy_static! {
-    static ref ACTIONS: ActionFnMap<Werewolf> = [(
+static ACTIONS: Lazy<ActionFnMap<Werewolf>> = Lazy::new(|| [(
         "2".to_string(),
         Werewolf::night_action as ActionFn<Werewolf>
-    )]
-    .into_iter()
-    .collect();
-}
+    )].into_iter().collect());
 
 #[derive(Clone, Debug)]
 pub struct Werewolf;
@@ -27,6 +23,11 @@ impl Role for Werewolf {
     #[instrument(level = "trace")]
     fn new() -> Self {
         Self {}
+    }
+
+    #[instrument(level = "trace")]
+    fn max_amt() -> usize where Self:Sized {
+        2
     }
 
     #[instrument(level = "trace")]
@@ -95,3 +96,7 @@ impl Werewolf {
         })
     }
 }
+
+
+
+

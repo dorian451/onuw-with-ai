@@ -5,18 +5,14 @@ use crate::{
 };
 use async_trait::async_trait;
 use futures::Future;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use std::pin::Pin;
 use tracing::instrument;
 
-lazy_static! {
-    static ref ACTIONS: ActionFnMap<Troublemaker> = [(
+static ACTIONS: Lazy<ActionFnMap<Troublemaker>> = Lazy::new(|| [(
         "7".to_string(),
         Troublemaker::night_action as ActionFn<Troublemaker>
-    )]
-    .into_iter()
-    .collect();
-}
+    )].into_iter().collect());
 
 #[derive(Clone, Debug)]
 pub struct Troublemaker;
@@ -106,3 +102,6 @@ impl Troublemaker {
         })
     }
 }
+
+
+

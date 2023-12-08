@@ -6,18 +6,14 @@ use crate::{
 };
 use async_trait::async_trait;
 use futures::Future;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use std::pin::Pin;
 use tracing::instrument;
 
-lazy_static! {
-    static ref ACTIONS: ActionFnMap<Insomniac> = [(
+static ACTIONS: Lazy<ActionFnMap<Insomniac>> = Lazy::new(|| [(
         "9".to_string(),
         Insomniac::night_action as ActionFn<Insomniac>
-    )]
-    .into_iter()
-    .collect();
-}
+    )].into_iter().collect());
 
 #[derive(Clone, Debug)]
 pub struct Insomniac;
@@ -93,3 +89,6 @@ impl Insomniac {
         })
     }
 }
+
+
+

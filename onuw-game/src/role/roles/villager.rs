@@ -15,6 +15,14 @@ impl Role for Villager {
     }
 
     #[instrument(level = "trace")]
+    fn max_amt() -> usize
+    where
+        Self: Sized,
+    {
+        3
+    }
+
+    #[instrument(level = "trace")]
     fn id(&self) -> String {
         "Villager".to_string()
     }
@@ -49,3 +57,4 @@ impl Villager {
                 .any(|(_, r)| r.try_read().unwrap().role_type() == RoleType::Werewolf))
     }
 }
+

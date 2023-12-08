@@ -6,16 +6,11 @@ use crate::{
 };
 use async_trait::async_trait;
 use futures::Future;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use std::{pin::Pin, vec::Vec};
 use tracing::instrument;
 
-lazy_static! {
-    static ref ACTIONS: ActionFnMap<Seer> =
-        [("5".to_string(), Seer::night_action as ActionFn<Seer>)]
-            .into_iter()
-            .collect();
-}
+static ACTIONS: Lazy<ActionFnMap<Seer>> = Lazy::new(|| [("5".to_string(), Seer::night_action as ActionFn<Seer>)].into_iter().collect());
 
 #[derive(Clone, Debug)]
 pub struct Seer;
@@ -127,3 +122,4 @@ impl Seer {
         })
     }
 }
+

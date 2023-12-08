@@ -6,18 +6,18 @@ use crate::{
 };
 use async_trait::async_trait;
 use futures::Future;
-use lazy_static::lazy_static;
-use std::{pin::Pin, vec::Vec};
+use once_cell::sync::Lazy;
+use std::{fmt::Display, pin::Pin, vec::Vec};
 use tracing::{instrument, warn};
 
-lazy_static! {
-    static ref ACTIONS: ActionFnMap<Doppelganger> = [(
+static ACTIONS: Lazy<ActionFnMap<Doppelganger>> = Lazy::new(|| {
+    [(
         "1".to_string(),
-        Doppelganger::night_action as ActionFn<Doppelganger>
+        Doppelganger::night_action as ActionFn<Doppelganger>,
     )]
     .into_iter()
-    .collect();
-}
+    .collect()
+});
 
 #[derive(Clone, Debug)]
 pub struct Doppelganger {
@@ -34,6 +34,18 @@ impl Role for Doppelganger {
     #[instrument(level = "trace")]
     fn id(&self) -> String {
         "Doppelganger".to_string()
+    }
+
+    #[instrument(level = "trace")]
+    fn verbose_id(&self) -> String {
+        format!(
+            "{}({})",
+            self.id(),
+            self.copied
+                .as_ref()
+                .map(|r| r.verbose_id())
+                .unwrap_or_default()
+        )
     }
 
     #[instrument(level = "trace")]

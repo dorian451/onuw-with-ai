@@ -48,8 +48,29 @@ pub trait Role: Send + Sync + Debug + DynClone {
     fn id(&self) -> String;
 
     #[instrument(level = "trace")]
+    fn verbose_id(&self) -> String {
+        self.id()
+    }
+
+    #[instrument(level = "trace")]
     fn effective_id(&self) -> String {
         self.id()
+    }
+
+    #[instrument(level = "trace")]
+    fn min_amt() -> usize
+    where
+        Self: Sized,
+    {
+        1
+    }
+
+    #[instrument(level = "trace")]
+    fn max_amt() -> usize
+    where
+        Self: Sized,
+    {
+        1
     }
 
     fn role_type(&self) -> RoleType;
@@ -101,33 +122,9 @@ pub trait Role: Send + Sync + Debug + DynClone {
 
 dyn_clone::clone_trait_object!(Role);
 
-// fn upcast_actions<R: Role>(actions: &ActionFnMap<R>) -> ActionFnMapG {
-//     let x = actions
-//         .iter()
-//         .map(|(k, v)| {
-//             (
-//                 k.clone(),
-//                 Box::new(move |a: &mut dyn Role, b, c| {
-//                     v(
-//                         <dyn Any>::downcast_mut(&mut a as &mut dyn Any).unwrap_or_else(|| {
-//                             panic!(
-//                                 "invalid actions array for {:?}",
-//                                 <dyn Any>::type_id(&a as &dyn Any)
-//                             )
-//                         }),
-//                         b,
-//                         c,
-//                     )
-//                 }) as ActionFnG,
-//             )
-//         })
-//         .collect::<HashMap<_, _>>();
-//     x
-// }
-
 impl<'a> Display for &'a dyn Role {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.effective_id())
+        write!(f, "{}", self.verbose_id())
     }
 }
 

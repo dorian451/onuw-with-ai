@@ -6,16 +6,11 @@ use crate::{
 };
 use async_trait::async_trait;
 use futures::Future;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use std::pin::Pin;
 use tracing::instrument;
 
-lazy_static! {
-    static ref ACTIONS: ActionFnMap<Drunk> =
-        [("8".to_string(), Drunk::night_action as ActionFn<Drunk>)]
-            .into_iter()
-            .collect();
-}
+static ACTIONS: Lazy<ActionFnMap<Drunk>> = Lazy::new(|| [("8".to_string(), Drunk::night_action as ActionFn<Drunk>)].into_iter().collect());
 
 #[derive(Clone, Debug)]
 pub struct Drunk;
@@ -100,3 +95,6 @@ impl Drunk {
         })
     }
 }
+
+
+
