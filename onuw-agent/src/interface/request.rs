@@ -26,6 +26,10 @@ pub enum Time {
     Night(String),
     Day,
     Vote,
+    End {
+        dead: Vec<GamePlayer>,
+        winners: Vec<GamePlayer>,
+    },
 }
 
 impl<'a> From<&ONUWTime<'a>> for Time {
@@ -35,6 +39,10 @@ impl<'a> From<&ONUWTime<'a>> for Time {
             ONUWTime::Night(r) => Time::Night(r.effective_id()),
             ONUWTime::Day => Time::Day,
             ONUWTime::Vote => Time::Vote,
+            ONUWTime::End { dead, winners } => Time::End {
+                dead: dead.to_vec(),
+                winners: winners.to_vec(),
+            },
         }
     }
 }
