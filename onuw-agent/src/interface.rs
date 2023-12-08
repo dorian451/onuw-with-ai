@@ -56,7 +56,7 @@ impl AgentInterface {
 impl PlayerInterface for AgentInterface {
     #[instrument(level = "trace")]
     fn name(&self) -> &str {
-        self.name()
+        self.name.as_str()
     }
 
     #[instrument(level = "trace")]
@@ -66,7 +66,7 @@ impl PlayerInterface for AgentInterface {
         role: &dyn Role,
     ) -> Result<(), PlayerInterfaceError> {
         match self
-            .send(Request::ShowRole(target, role.to_string()))
+            .send(Request::ShowRole(target, role.effective_id()))
             .await?
         {
             None => Ok(()),
