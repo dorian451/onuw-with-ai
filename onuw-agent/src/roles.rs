@@ -30,7 +30,7 @@ impl<'a> TryFrom<&'a str> for Role {
     fn try_from(value: &'a str) -> Result<Self, Self::Error> {
         match value {
             "Doppelganger" => Ok(Self::Doppelganger),
-            "Werewolves" => Ok(Self::Werewolves),
+            "Werewolf" => Ok(Self::Werewolves),
             "Minion" => Ok(Self::Minion),
             "Masons" => Ok(Self::Masons),
             "Seer" => Ok(Self::Seer),
