@@ -131,7 +131,10 @@ async fn test() {
     );
 
     warn!("voting");
-    game.determine_game().await;
+    game.collect_votes().await.unwrap();
+
+    warn!("calc dead/winners");
+    game.calc_dead_and_winners().await.unwrap();
 }
 
 #[tokio::test]
